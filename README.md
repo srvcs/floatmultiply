@@ -1,67 +1,76 @@
 # srvcs-floatmultiply
 
-Floating-point multiplication for srvcs.cloud: computes `a * b` and returns the
-product as an `f64` (a JSON number that may have a fractional part). Unlike the
-integer arithmetic leaves, this is a **float** service — both integer and
-fractional operands are accepted, and the result is a 64-bit float.
+## Name
 
-## Concern
+| Field | Value |
+| --- | --- |
+| Service | `srvcs-floatmultiply` |
+| Slug | `floatmultiply` |
+| Repository | `srvcs/floatmultiply` |
+| Package | `srvcs-floatmultiply` |
+| Kind | `primitive` |
 
-`float arithmetic: a * b`
+## Function
+
+float arithmetic: a * b
 
 ## Dependencies
 
-- `srvcs-isnumber` — the single source of truth for "is this a number". Each
-  operand is validated over HTTP before the multiplication is performed.
+| Dependency | Repository |
+| --- | --- |
+| `srvcs-isnumber` | [srvcs/isnumber](https://github.com/srvcs/isnumber) |
 
 ## API
 
-### `GET /`
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `GET` | `/` | Service identity |
+| `POST` | `/` | Evaluate the service function |
+| `GET` | `/healthz` | Liveness probe |
+| `GET` | `/readyz` | Readiness probe |
+| `GET` | `/metrics` | Prometheus metrics |
+| `GET` | `/openapi.json` | OpenAPI document |
 
-Service identity.
+## Inputs
 
-```json
-{
-  "service": "srvcs-floatmultiply",
-  "concern": "float arithmetic: a * b",
-  "depends_on": ["srvcs-isnumber"]
-}
-```
+| Name | Type | Required |
+| --- | --- | --- |
+| `a` | `json` | yes |
+| `b` | `json` | yes |
 
-### `POST /`
+## Outputs
 
-Request:
-
-```json
-{ "a": 2.5, "b": 4 }
-```
-
-Response `200`:
-
-```json
-{ "a": 2.5, "b": 4, "result": 10.0 }
-```
-
-`result` is an `f64`. Because floating-point multiplication is not exact,
-clients should compare results approximately.
-
-Responses:
-
-- `200` — `{ "a", "b", "result": <f64> }`
-- `422` — an operand is not a number (forwarded from / decided by
-  `srvcs-isnumber`)
-- `503` — `srvcs-isnumber` is unreachable; the service reports itself degraded
-  rather than guessing.
+| Name | Type |
+| --- | --- |
+| `a` | `json` |
+| `b` | `json` |
+| `result` | `number` |
 
 ## Configuration
 
-| Env var              | Default                  | Description                       |
-| -------------------- | ------------------------ | --------------------------------- |
-| `SRVCS_BIND_ADDR`    | `0.0.0.0:8080`           | Host:port to bind.                |
-| `SRVCS_ISNUMBER_URL` | `http://127.0.0.1:8081`  | Base URL of `srvcs-isnumber`.     |
-| `RUST_LOG`           | `info,tower_http=info`   | Log filter.                       |
-| `SRVCS_ENV`          | `development`            | Environment label.                |
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `SRVCS_BIND_ADDR` | `0.0.0.0:8080` | Bind address |
+| `SRVCS_ENV` | `development` | Environment label for logs |
+| `RUST_LOG` | `info,tower_http=info` | Tracing filter |
+| `SRVCS_ISNUMBER_URL` | `http://127.0.0.1:8081` | Base URL for srvcs-isnumber |
 
-## Standard endpoints
+## Error Behavior
 
-`/healthz`, `/readyz`, `/metrics`, `/openapi.json`.
+- `422` means the request could not be evaluated for the documented input shape.
+- `503` means a required dependency was unavailable or returned an unexpected response.
+- Dependency validation errors are forwarded when this service delegates validation.
+
+## Local Checks
+
+```sh
+cargo fmt --check
+cargo clippy --all-targets -- -D warnings
+cargo test
+```
+
+See the [srvcs service standard](https://github.com/srvcs/platform/blob/main/STANDARD.md) for the full operational contract.
+
+## Metadata
+
+Machine-readable service metadata lives in `srvcs.yaml`. Keep it aligned with this README when the service contract changes.
